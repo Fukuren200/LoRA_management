@@ -86,6 +86,27 @@ if q.strip():
 
 colA, colB = st.columns([3, 1], gap="large")
 
+with colA:
+    st.subheader(f"Results: {len(ids)}")
+    pages = max(1, (len(ids) + PAGE_SIZE - 1) // PAGE_SIZE)
+    page = st.number_input("page", min_value=0, max_value=max(0, pages-1), value=0, step=1)
+
+    rows = fetch_page(ids, page)
+
+    # 6列グリッド
+    cols = st.columns(6, gap="small")
+    for i, r in enumerate(rows):
+        _id, name, trigger, thumb, path,  k, title = r
+        with cols[i % 6]:
+            if thumb and Path(thumb).exists():
+                st.image(thumb, width="stretch")
+            display = title or name
+            st.caption(f"{display}\n[{k or '-'}]")
+            if st.button("Pick", key=f"pick_{_id}"):
+                st.session_state.picked[_id] = r
+                st.session_state.w.setdefault(_id, 0.8)
+            st.text_input("trigger", value=(trigger or ""), key=f"tr_{_id}", disabled=True)
+
 with colB:
     st.subheader("Picked")
     if st.button("Pickedをクリア"):
@@ -112,24 +133,3 @@ with colB:
         st.subheader("A1111 Prompt")
         out = recipe_generate(list(st.session_state.picked.values()), st.session_state.w)
         st.code(out, language="text")
-
-with colA:
-    st.subheader(f"Results: {len(ids)}")
-    pages = max(1, (len(ids) + PAGE_SIZE - 1) // PAGE_SIZE)
-    page = st.number_input("page", min_value=0, max_value=max(0, pages-1), value=0, step=1)
-
-    rows = fetch_page(ids, page)
-
-    # 6列グリッド
-    cols = st.columns(6, gap="small")
-    for i, r in enumerate(rows):
-        _id, name, trigger, thumb, path,  k, title = r
-        with cols[i % 6]:
-            if thumb and Path(thumb).exists():
-                st.image(thumb, width="stretch")
-            display = title or name
-            st.caption(f"{display}\n[{k or '-'}]")
-            if st.button("Pick", key=f"pick_{_id}"):
-                st.session_state.picked[_id] = r
-                st.session_state.w.setdefault(_id, 0.8)
-            st.text_input("trigger", value=(trigger or ""), key=f"tr_{_id}", disabled=True)
