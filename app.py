@@ -126,7 +126,7 @@ with colA:
         _id, name, trigger, thumb, path, k = r
         with cols[i % 6]:
             if thumb and Path(thumb).exists():
-                st.image(thumb, use_container_width=True)
+                st.image(thumb, width="stretch")
             st.caption(f"{name}\n[{k or '-'}]")
             if st.button("Pick", key=f"pick_{_id}"):
                 st.session_state.picked[_id] = r
