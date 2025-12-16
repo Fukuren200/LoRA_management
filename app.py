@@ -38,7 +38,7 @@ def fetch_page(ids, page: int):
         return []
     qmarks = ",".join(["?"] * len(chunk))
     rows = conn.execute(f"""
-        SELECT id, name, trigger, preview_thumb, path, kind
+        SELECT id, name, trigger, preview_thumb, path, kind, title 
         FROM lora
         WHERE id IN ({qmarks})
     """, chunk).fetchall()
@@ -123,11 +123,12 @@ with colA:
     # 6列グリッド
     cols = st.columns(6, gap="small")
     for i, r in enumerate(rows):
-        _id, name, trigger, thumb, path, k = r
+        _id, name, trigger, thumb, path,  k, title = r
         with cols[i % 6]:
             if thumb and Path(thumb).exists():
                 st.image(thumb, width="stretch")
-            st.caption(f"{name}\n[{k or '-'}]")
+            display = title or name
+            st.caption(f"{display}\n[{k or '-'}]")
             if st.button("Pick", key=f"pick_{_id}"):
                 st.session_state.picked[_id] = r
                 st.session_state.w.setdefault(_id, 0.8)
