@@ -66,6 +66,12 @@ def recipe_generate(selected, weights):
         prompt += "\n" + ", ".join([t for t in triggers if t.strip()])
     return prompt.strip()
 
+def update_title(lora_id: int, title: str):
+    conn = db()
+    conn.execute("UPDATE lora SET title=? WHERE id=?", (title, lora_id))
+    conn.commit()
+    conn.close()
+
 st.set_page_config(layout="wide", page_title="LoRA Library (Light)")
 
 st.title("LoRA Library (Light)")
@@ -126,6 +132,20 @@ with colB:
     # 重み調整
     for _id, row in list(st.session_state.picked.items()):
         name = row[1]
+        title = row[6]
+        display = title or name
+        
+        new_title = st.text_input(f"Title: {display}", value=(title or name), key=f"title_{_id}")
+        if st.button("Save Title", key=f"save_title_{_id}"):
+            update_title(_id, new_title)
+            
+            row = list(row)
+            row[6] = new_title
+            st.session_state.picked[_id] = tuple(row)
+            st.success("saved")
+            # キャッシュ対策。必要な時に有効化。古いデータが画面上に表示されるときとか
+#            st.cache_data.clear()
+        
         st.session_state.w[_id] = st.slider(name, 0.1, 1.5, float(st.session_state.w.get(_id, 0.8)), 0.05)
 
     if st.session_state.picked:
