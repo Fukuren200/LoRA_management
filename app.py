@@ -9,8 +9,12 @@ DB_PATH   = LORA_ROOT / "__lora_catalog.sqlite"
 
 PAGE_SIZE = 36
 
-def db():
-    return sqlite3.connect(DB_PATH, check_same_thread=False)
+def get_db():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    return conn
 
 def build_fts_query(q: str) -> str | None:
     q = (q or "").strip()
@@ -32,7 +36,7 @@ def build_fts_query(q: str) -> str | None:
 @st.cache_data(show_spinner=False)
 def search_ids(q: str, selected_kinds: list[str], max_hits: int) -> list[int]:
     fts_query = build_fts_query(q)
-    conn = db()
+    conn = get_db()
     
     try:
         where = []
@@ -68,7 +72,7 @@ def search_ids(q: str, selected_kinds: list[str], max_hits: int) -> list[int]:
         conn.close()
 
 def fetch_page(ids, page: int):
-    conn = db()
+    conn = get_db()
     start = page * PAGE_SIZE
     chunk = ids[start:start+PAGE_SIZE]
     if not chunk:
@@ -85,7 +89,7 @@ def fetch_page(ids, page: int):
     return [m[i] for i in chunk if i in m]
 
 def fetch_kinds():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     try:
         rows = conn.execute("""
             SELECT DISTINCT COALESCE(NULLIF(kind, ''), 'Unsorted') AS k
@@ -116,7 +120,7 @@ def recipe_generate(selected, weights):
     return prompt.strip()
 
 def update_title(lora_id: int, title: str):
-    conn = db()
+    conn = get_db()
     try:
         conn.execute("BEGIN")
         conn.execute("UPDATE lora SET title=? WHERE id=?", (title, lora_id))
@@ -135,7 +139,7 @@ def update_title(lora_id: int, title: str):
     
 def startup_migrate():
     if "migrated" not in st.session_state:
-        conn = db()
+        conn = get_db()
         try:
             apply_migrations(conn)
         finally:

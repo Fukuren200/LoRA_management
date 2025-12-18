@@ -55,10 +55,13 @@ def ensure_thumb(png_path: Path, sha: str):
         return None
 
 def init_db(conn: sqlite3.Connection):
+    # 接続設定
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    
+    # スキーマ定義
     conn.executescript("""
-    PRAGMA journal_mode=WAL;
-    PRAGMA synchronous=NORMAL;
-
     CREATE TABLE IF NOT EXISTS lora (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
