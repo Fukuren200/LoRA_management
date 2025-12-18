@@ -119,9 +119,21 @@ def recipe_generate(selected, weights):
 
 def update_title(lora_id: int, title: str):
     conn = db()
-    conn.execute("UPDATE lora SET title=? WHERE id=?", (title, lora_id))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("BEGIN")
+        conn.execute("UPDATE lora SET title=? WHERE id=?", (title, lora_id))
+        
+        conn.execute("""
+            UPDATE lora_fts
+            SET title=?
+            WHERE rowid=?
+        """, (new_title, _id))
+        conn.commit()
+    except:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
     
 def startup_migrate():
     if "migrated" not in st.session_state:
