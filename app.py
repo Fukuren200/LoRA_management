@@ -12,8 +12,26 @@ PAGE_SIZE = 36
 def db():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
+def build_fts_query(q: str) -> str | None:
+    q = (q or "").strip()
+    if not q:
+        return None
+    
+    terms = [t for t in q.split() if t]
+    if not terms:
+        return None
+    
+    def esc(term: str) -> str:
+        term = term.replace('"', '""')
+        return f'"{term}"'
+        
+    parts = [f'(name:{esc(t)} OR title:{esc(t)})' for t in terms]
+    return " AND ".join(parts)
+
+
 @st.cache_data(show_spinner=False)
-def search_ids(selected_kinds):
+def search_ids(q: str, selected_kinds: list[str], max_hits: int) -> list[int]:
+    fts_query = build_fts_query(q)
     conn = db()
     
     try:
@@ -26,16 +44,25 @@ def search_ids(selected_kinds):
             ))
             params.extend(selected_kinds)
         
-        sql = """
+        join_fts = ""
+        if fts_query:
+            join_fts = "JOIN lora_fts ON lora_fts.rowid = lora.id"
+            where.append("lora_fts MATCH ?")
+            params.append(fts_query)
+        
+        sql = f"""
             SELECT lora.id
-            FROM lora
-            JOIN lora_fts ON lora_fts.rowid = lora.id
+            FROM lora 
+            {join_fts}
         """
         
         if where:
             sql += "WHERE " + " AND ".join(where)
         
-        sql += " ORDER BY lora.mtime DESC"
+        sql += " ORDER BY lora.mtime DESC LIMIT ?"
+        params.append(int(max_hits))
+        
+        print(f"sql = {sql}")
         
         rows = conn.execute(sql, params).fetchall()
         return [r[0] for r in rows]
@@ -118,8 +145,7 @@ selected_kinds = st.multiselect(
     options=all_kinds,
 )
 
-#q = st.text_input("検索（例：anime portrait blue_hair）", value="anime")
-#kind = st.selectbox("kind", ["all", "char", "style", "detail", "concept"], index=0)
+q = st.text_input("検索（例：anime portrait blue_hair）", value="").strip()
 max_hits = st.slider("最大ヒット数（増やすと重くなる）", 200, 5000, 1500, 100)
 
 st.session_state.setdefault("picked", {})
@@ -127,7 +153,7 @@ st.session_state.setdefault("w", {})
 st.session_state.setdefault("single_pick", True)
 
 # ヒットID取得（FTS）
-ids = search_ids(selected_kinds)
+ids = search_ids(q, selected_kinds, max_hits)
 
 colA, colB = st.columns([3, 1], gap="large")
 
