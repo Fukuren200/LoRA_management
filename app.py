@@ -2,6 +2,7 @@ import sqlite3
 from pathlib import Path
 import streamlit as st
 import random
+from db_migrate import apply_migrations
 
 LORA_ROOT = Path(r"E:\AIDirectory\EasyReforge\Model\Lora")  # 変える
 DB_PATH   = LORA_ROOT / "__lora_catalog.sqlite"
@@ -71,6 +72,17 @@ def update_title(lora_id: int, title: str):
     conn.execute("UPDATE lora SET title=? WHERE id=?", (title, lora_id))
     conn.commit()
     conn.close()
+    
+def startup_migrate():
+    if "migrated" not in st.session_state:
+        conn = db()
+        try:
+            apply_migrations(conn)
+        finally:
+            conn.close()
+        st.session_state.migrated = True
+
+startup_migrate()
 
 st.set_page_config(layout="wide", page_title="LoRA Library (Light)")
 

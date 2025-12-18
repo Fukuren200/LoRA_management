@@ -1,6 +1,7 @@
 import os, json, time, sqlite3, hashlib
 from pathlib import Path
 from PIL import Image
+from db_migrate import apply_migrations
 
 # 任意：無くても動く
 try:
@@ -109,6 +110,7 @@ def upsert_lora(conn, row):
       name=excluded.name,
       sha256=excluded.sha256,
       base=excluded.base,
+      kind=excluded.kind,
       trigger=excluded.trigger,
       preview_full=excluded.preview_full,
       preview_thumb=excluded.preview_thumb,
@@ -187,7 +189,8 @@ def print_progress(done, total, skipped, phase="scan"):
 def main():
     conn = sqlite3.connect(DB_PATH)
     init_db(conn)
-
+    apply_migrations(conn)
+    
     now = int(time.time())
     updated = 0
     skipped = 0
@@ -266,11 +269,11 @@ def main():
                     tags += [str(x) for x in v]
                 elif isinstance(v, str):
                     tags += [x.strip() for x in v.split(",")]
-            
+            kind = st.parent.name if st.parent != LORA_ROOT else "Unsorted"
             row = (
                 name, str(st), sha,
                 "SDXL",  # Illustrious前提
-                None,    # kindは後で付ける（char/style/detail）
+                kind,    # kindは後で付ける（char/style/detail）
                 trigger,
                 None,    # notes
                 preview_full,
