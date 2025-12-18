@@ -62,8 +62,6 @@ def search_ids(q: str, selected_kinds: list[str], max_hits: int) -> list[int]:
         sql += " ORDER BY lora.mtime DESC LIMIT ?"
         params.append(int(max_hits))
         
-        print(f"sql = {sql}")
-        
         rows = conn.execute(sql, params).fetchall()
         return [r[0] for r in rows]
     finally:
