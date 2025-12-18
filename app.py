@@ -155,7 +155,7 @@ selected_kinds = st.multiselect(
     options=all_kinds,
 )
 
-q = st.text_input("検索（例：anime portrait blue_hair）", value="").strip()
+q = st.text_input("検索ワード スペース区切りでAND。2文字以下はヒットしません", value="").strip()
 max_hits = st.slider("最大ヒット数（増やすと重くなる）", 200, 5000, 1500, 100)
 
 st.session_state.setdefault("picked", {})
