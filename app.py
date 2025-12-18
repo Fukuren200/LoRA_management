@@ -127,15 +127,19 @@ st.session_state.setdefault("picked", {})
 st.session_state.setdefault("w", {})
 st.session_state.setdefault("single_pick", True)
 
-single_pick = st.toggle(
-    "単一Pickモード (新しく選ぶと入れ替え)", 
-    key="single_pick",
-)
-
 # ヒットID取得（FTS）
 ids = search_ids(selected_kinds)
 
 colA, colB = st.columns([3, 1], gap="large")
+
+with colB:
+    st.subheader("Picked")
+    single_pick = st.toggle(
+        "単一Pickモード (新しく選ぶと入れ替え)", 
+        key="single_pick",
+    )
+    
+    picked_area = st.container()
 
 with colA:
     st.subheader(f"Results: {len(ids)}")
@@ -164,9 +168,7 @@ with colA:
                 
             st.text_input("trigger", value=(trigger or ""), key=f"tr_{_id}", disabled=True)
 
-with colB:
-    st.subheader("Picked")
-    
+with picked_area:    
     if st.button("Pickedをクリア"):
         st.session_state.picked = {}
         st.session_state.w = {}
