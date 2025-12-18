@@ -123,10 +123,14 @@ selected_kinds = st.multiselect(
 #kind = st.selectbox("kind", ["all", "char", "style", "detail", "concept"], index=0)
 max_hits = st.slider("最大ヒット数（増やすと重くなる）", 200, 5000, 1500, 100)
 
-if "picked" not in st.session_state:
-    st.session_state.picked = {}   # id -> row
-if "w" not in st.session_state:
-    st.session_state.w = {}        # id -> weight
+st.session_state.setdefault("picked", {})
+st.session_state.setdefault("w", {})
+st.session_state.setdefault("single_pick", True)
+
+single_pick = st.toggle(
+    "単一Pickモード (新しく選ぶと入れ替え)", 
+    key="single_pick",
+)
 
 # ヒットID取得（FTS）
 ids = search_ids(selected_kinds)
@@ -150,31 +154,48 @@ with colA:
             display = title or name
             st.caption(f"{display}\n[{k or '-'}]")
             if st.button("Pick", key=f"pick_{_id}"):
-                st.session_state.picked[_id] = r
-                st.session_state.w.setdefault(_id, 0.8)
+                if single_pick:
+                    st.session_state.picked = {_id: r}
+                    st.session_state.w = {_id: 0.8}
+                else:
+                    st.session_state.picked[_id] = r
+                    st.session_state.w.setdefault(_id, 0.8)
+                st.rerun()
+                
             st.text_input("trigger", value=(trigger or ""), key=f"tr_{_id}", disabled=True)
 
 with colB:
     st.subheader("Picked")
+    
     if st.button("Pickedをクリア"):
         st.session_state.picked = {}
         st.session_state.w = {}
+        st.rerun()
 
     if st.button("ランダムで追加（今の検索結果から1つ）") and ids:
         rid = random.choice(ids)
         # 取得して追加（簡易）
         r = fetch_page([rid], 0)
         if r:
-            st.session_state.picked[rid] = r[0]
-            st.session_state.w.setdefault(rid, 0.8)
+            if single_pick:
+                st.session_state.picked = {rid: r[0]}
+                st.session_state.w = {rid: 0.8}
+            else:
+                st.session_state.picked[rid] = r[0]
+                st.session_state.w.setdefault(rid, 0.8)
+            st.rerun()
 
     st.caption(f"選択数: {len(st.session_state.picked)}")
 
     # 重み調整
     for _id, row in list(st.session_state.picked.items()):
         name = row[1]
+        thumb = row[3]
         title = row[6]
         display = title or name
+        
+        if thumb and Path(thumb).exists():
+                st.image(thumb, width="stretch")
         
         new_title = st.text_input(f"Title: {display}", value=(title or name), key=f"title_{_id}")
         if st.button("Save Title", key=f"save_title_{_id}"):
@@ -191,6 +212,6 @@ with colB:
 
     if st.session_state.picked:
         st.divider()
-        st.subheader("A1111 Prompt")
+        st.subheader("Prompt")
         out = recipe_generate(list(st.session_state.picked.values()), st.session_state.w)
         st.code(out, language="text")
