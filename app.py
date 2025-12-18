@@ -116,7 +116,6 @@ all_kinds = fetch_kinds()
 selected_kinds = st.multiselect(
     "kind filter",
     options=all_kinds,
-    default=all_kinds,
 )
 
 #q = st.text_input("検索（例：anime portrait blue_hair）", value="anime")
