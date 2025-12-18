@@ -54,9 +54,35 @@ def mig_002_fill_fts(conn):
         GROUP BY l.id
     """)
 
+def mig_003_add_lora_preset_table(conn):
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS lora_body_preset (
+            id INTEGER PRIMARY KEY,
+            lora_id INTEGER NOT NULL,
+            name TEXT,
+            body_prompt TEXT,
+            thumb TEXT,
+            FOREIGN KEY(lora_id) REFERENCES lora(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS lora_outfit_preset (
+            id INTEGER PRIMARY KEY,
+            lora_id INTEGER NOT NULL,
+            name TEXT,
+            clothes_prompt TEXT,
+            thumb TEXT,
+            FOREIGN KEY(lora_id) REFERENCES lora(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_lora_body_preset_lora_id ON lora_body_preset(lora_id);
+        CREATE INDEX IF NOT EXISTS idx_lora_outfit_preset_lora_id ON lora_outfit_preset(lora_id);
+    """)
+    
+
 MIGRATIONS = [
     (1, mig_001_fill_kind_from_path),
-    (2, mig_002_fill_fts)
+    (2, mig_002_fill_fts),
+    (3, mig_003_add_lora_preset_table)
 ]
 
 def apply_migrations(conn):
