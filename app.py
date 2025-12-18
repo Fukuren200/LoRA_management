@@ -13,23 +13,34 @@ def db():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 @st.cache_data(show_spinner=False)
-def search_ids(q: str, kind: str, limit: int):
+def search_ids(selected_kinds):
     conn = db()
-    where_kind = "" if kind == "all" else "AND l.kind = ?"
-    params = [q]
-    if kind != "all":
-        params.append(kind)
-    rows = conn.execute(f"""
-        SELECT l.id
-        FROM lora_fts f
-        JOIN lora l ON l.id = f.rowid
-        WHERE lora_fts MATCH ?
-        {where_kind}
-        ORDER BY bm25(lora_fts)
-        LIMIT ?
-    """, (*params, limit)).fetchall()
-    conn.close()
-    return [r[0] for r in rows]
+    
+    try:
+        where = []
+        params = []
+        
+        if selected_kinds:
+            where.append("COALESCE(NULLIF(lora.kind, ''), 'Unsorted') IN ({})".format(
+                ",".join(["?"] * len(selected_kinds))
+            ))
+            params.extend(selected_kinds)
+        
+        sql = """
+            SELECT lora.id
+            FROM lora
+            JOIN lora_fts ON lora_fts.rowid = lora.id
+        """
+        
+        if where:
+            sql += "WHERE " + " AND ".join(where)
+        
+        sql += " ORDER BY lora.mtime DESC"
+        
+        rows = conn.execute(sql, params).fetchall()
+        return [r[0] for r in rows]
+    finally:
+        conn.close()
 
 def fetch_page(ids, page: int):
     conn = db()
@@ -47,6 +58,18 @@ def fetch_page(ids, page: int):
     # INは順序が崩れるのでids順に並べ直す
     m = {r[0]: r for r in rows}
     return [m[i] for i in chunk if i in m]
+
+def fetch_kinds():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        rows = conn.execute("""
+            SELECT DISTINCT COALESCE(NULLIF(kind, ''), 'Unsorted') AS k
+            FROM lora
+            ORDER BY k COLLATE NOCASE
+        """).fetchall()
+        return [r[0] for r in rows]
+    finally:
+        conn.close()
 
 def lora_tag(name: str, w: float):
     # A1111の <lora:NAME:W>
@@ -88,8 +111,16 @@ st.set_page_config(layout="wide", page_title="LoRA Library (Light)")
 
 st.title("LoRA Library (Light)")
 
-q = st.text_input("検索（例：anime portrait blue_hair）", value="anime")
-kind = st.selectbox("kind", ["all", "char", "style", "detail", "concept"], index=0)
+all_kinds = fetch_kinds()
+
+selected_kinds = st.multiselect(
+    "kind filter",
+    options=all_kinds,
+    default=all_kinds,
+)
+
+#q = st.text_input("検索（例：anime portrait blue_hair）", value="anime")
+#kind = st.selectbox("kind", ["all", "char", "style", "detail", "concept"], index=0)
 max_hits = st.slider("最大ヒット数（増やすと重くなる）", 200, 5000, 1500, 100)
 
 if "picked" not in st.session_state:
@@ -98,9 +129,7 @@ if "w" not in st.session_state:
     st.session_state.w = {}        # id -> weight
 
 # ヒットID取得（FTS）
-ids = []
-if q.strip():
-    ids = search_ids(q.strip(), kind, max_hits)
+ids = search_ids(selected_kinds)
 
 colA, colB = st.columns([3, 1], gap="large")
 
