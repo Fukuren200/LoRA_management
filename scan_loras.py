@@ -80,7 +80,9 @@ def init_db(conn: sqlite3.Connection):
     );
 
     CREATE VIRTUAL TABLE IF NOT EXISTS lora_fts
-    USING fts5(name, trigger, notes, tags_text, title);
+    USING fts5(name, trigger, notes, tags_text, title
+        tokenize = "trigram"
+    );
 
     CREATE TABLE IF NOT EXISTS tag (
       id INTEGER PRIMARY KEY,

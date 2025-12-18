@@ -29,9 +29,34 @@ def mig_001_fill_kind_from_path(conn):
         parent = Path(p).parent.name
         kind = parent if parent else "Unsorted"
         conn.execute("UPDATE lora SET kind=? WHERE id=?", (kind, _id))
-        
+
+def mig_002_fill_fts(conn):
+    conn.execute("DROP TABLE IF EXISTS lora_fts")
+    conn.execute("""
+        CREATE VIRTUAL TABLE lora_fts USING fts5(
+            name, trigger, notes, tags_text, title,
+            tokenize = "trigram"
+        )
+    """)
+
+    conn.execute("""
+        INSERT INTO lora_fts(rowid, name, trigger, notes, tags_text, title)
+        SELECT
+            l.id AS rowid,
+            COALESCE(l.name, ''),
+            COALESCE(l.trigger, ''),
+            COALESCE(l.notes, ''),
+            COALESCE(group_concat(t.name, ' '), '') AS tags_text,
+            COALESCE(l.title, '')
+        FROM lora l
+        LEFT JOIN lora_tag lt ON lt.lora_id = l.id
+        LEFT JOIN tag t ON t.id = lt.tag_id
+        GROUP BY l.id
+    """)
+
 MIGRATIONS = [
     (1, mig_001_fill_kind_from_path),
+    (2, mig_002_fill_fts)
 ]
 
 def apply_migrations(conn):
