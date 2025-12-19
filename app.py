@@ -188,6 +188,8 @@ with c_order:
         key="sort_dir",
     )
 
+st.markdown('<p style="color:red;">※ 検索ワードはスペース区切りでAND。2文字以下はヒットしません</p>', unsafe_allow_html=True)
+
 # ヒットID取得（FTS）
 ids = search_ids(q, selected_kinds, max_hits)
 
