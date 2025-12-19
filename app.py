@@ -129,7 +129,7 @@ def update_title(lora_id: int, title: str):
             UPDATE lora_fts
             SET title=?
             WHERE rowid=?
-        """, (new_title, _id))
+        """, (title, _id))
         conn.commit()
     except:
         conn.rollback()
