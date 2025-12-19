@@ -34,7 +34,7 @@ def build_fts_query(q: str) -> str | None:
 
 
 @st.cache_data(show_spinner=False)
-def search_ids(q: str, selected_kinds: list[str], max_hits: int) -> list[int]:
+def search_ids(q: str, selected_kinds: list[str], max_hits: int, sort_col: str, sort_dir: str) -> list[int]:
     fts_query = build_fts_query(q)
     conn = get_db()
     
@@ -54,6 +54,13 @@ def search_ids(q: str, selected_kinds: list[str], max_hits: int) -> list[int]:
             where.append("lora_fts MATCH ?")
             params.append(fts_query)
         
+        sort_dir = "DESC" if sort_dir.upper() != "ASC" else "ASC"
+        if sort_col == "title":
+            order_expr = "COALESCE(NULLIF(lora.title, ''), lora.name) COLLATE NOCASE"
+        else:
+            sort_col = "mtime"
+            order_expr = "lora.mtime"
+        
         sql = f"""
             SELECT lora.id
             FROM lora 
@@ -63,7 +70,7 @@ def search_ids(q: str, selected_kinds: list[str], max_hits: int) -> list[int]:
         if where:
             sql += "WHERE " + " AND ".join(where)
         
-        sql += " ORDER BY lora.mtime DESC LIMIT ?"
+        sql += f" ORDER BY {order_expr} {sort_dir}, lora.id DESC LIMIT ?"
         params.append(int(max_hits))
         
         rows = conn.execute(sql, params).fetchall()
@@ -191,7 +198,7 @@ with c_order:
 st.markdown('<p style="color:red;">※ 検索ワードはスペース区切りでAND。2文字以下はヒットしません</p>', unsafe_allow_html=True)
 
 # ヒットID取得（FTS）
-ids = search_ids(q, selected_kinds, max_hits)
+ids = search_ids(q, selected_kinds, max_hits, sort_col, sort_dir)
 
 colA, colB = st.columns([3, 1], gap="large")
 
