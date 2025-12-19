@@ -164,6 +164,7 @@ all_kinds = fetch_kinds()
 st.session_state.setdefault("picked", {})
 st.session_state.setdefault("w", {})
 st.session_state.setdefault("single_pick", True)
+st.session_state.setdefault("page", 0)
 
 max_hits = st.slider("最大ヒット数（増やすと重くなる）", 200, 5000, 1500, 100)
 
@@ -197,6 +198,12 @@ with c_order:
 
 st.markdown('<p style="color:red;">※ 検索ワードはスペース区切りでAND。2文字以下はヒットしません</p>', unsafe_allow_html=True)
 
+query_sig = (q, tuple(selected_kinds), sort_col, sort_dir)
+
+if st.session_state.get("query_sig") != query_sig:
+    st.session_state["query_sig"] = query_sig
+    st.session_state["page"] = 0
+
 # ヒットID取得（FTS）
 ids = search_ids(q, selected_kinds, max_hits, sort_col, sort_dir)
 
@@ -214,9 +221,20 @@ with colB:
 with colA:
     st.subheader(f"Results: {len(ids)}")
     pages = max(1, (len(ids) + PAGE_SIZE - 1) // PAGE_SIZE)
-    page = st.number_input("page", min_value=0, max_value=max(0, pages-1), value=0, step=1)
-
-    rows = fetch_page(ids, page)
+    max_page = max(0, pages - 1)
+    
+    if st.session_state["page"] > max_page:
+        st.session_state["page"] = 0
+    
+    # valueを渡さなくてもkeyを渡してるから、session_stateで管理できる
+    page = st.number_input(
+        "page", 
+        min_value=0, 
+        max_value=max_page, 
+        step=1,
+        key="page",
+    )
+    rows = fetch_page(ids, int(page))
 
     # 6列グリッド
     cols = st.columns(6, gap="small")
