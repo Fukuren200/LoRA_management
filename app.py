@@ -154,17 +154,39 @@ st.title("LoRA Library (Light)")
 
 all_kinds = fetch_kinds()
 
-selected_kinds = st.multiselect(
-    "kind filter",
-    options=all_kinds,
-)
-
-q = st.text_input("検索ワード スペース区切りでAND。2文字以下はヒットしません", value="").strip()
-max_hits = st.slider("最大ヒット数（増やすと重くなる）", 200, 5000, 1500, 100)
-
 st.session_state.setdefault("picked", {})
 st.session_state.setdefault("w", {})
 st.session_state.setdefault("single_pick", True)
+
+max_hits = st.slider("最大ヒット数（増やすと重くなる）", 200, 5000, 1500, 100)
+
+c_kinds, c_q, c_sort, c_order = st.columns([2, 2, 2, 2])
+
+with c_kinds:
+    selected_kinds = st.multiselect(
+        "LoRAの種別",
+        options=all_kinds,
+    )
+
+with c_q:
+    q = st.text_input("検索ワード", value="").strip()
+
+with c_sort:
+    sort_col = st.selectbox(
+        "Sort",
+        ["mtime", "title"],
+        format_func=lambda x: "更新日時" if x == "mtime" else "タイトル",
+        key="sort_col",
+    )
+
+with c_order:
+    sort_dir = st.radio(
+        "Order",
+        ["DESC", "ASC"],
+        format_func=lambda x: "降順" if x == "DESC" else "昇順",
+        horizontal=True,
+        key="sort_dir",
+    )
 
 # ヒットID取得（FTS）
 ids = search_ids(q, selected_kinds, max_hits)
