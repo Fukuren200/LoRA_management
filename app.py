@@ -156,18 +156,75 @@ def recipe_generate(selected, weights):
         prompt += "\n" + ", ".join([t for t in triggers if t.strip()])
     return prompt.strip()
 
+def update_body_prompt(id: int | None, lora_id: int, body_prompt: str | None):
+
+    if body_prompt is None:
+        return
+    
+    conn = get_db()
+    try:
+        if id is not None:
+            conn.execute(
+                """
+                UPDATE lora_body_preset 
+                SET body_prompt = ? 
+                WHERE id = ? AND lora_id = ? AND body_prompt IS NOT ?
+                """, 
+                (body_prompt, id, lora_id, body_prompt)
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO lora_body_preset (lora_id, body_prompt) 
+                VALUES(?, ?)
+                """, 
+                (lora_id, body_prompt))
+        
+        conn.commit()
+    finally:
+        conn.close()
+
+def update_clothes_prompt(id: int | None, lora_id:int, clothes_prompt: str | None):
+
+    if clothes_prompt is None:
+        return
+        
+    conn = get_db()
+    try:
+        if id is not None:
+            conn.execute(
+                """
+                UPDATE lora_outfit_preset 
+                SET clothes_prompt = ? 
+                WHERE id = ? AND lora_id = ? AND clothes_prompt IS NOT ?
+                """, 
+                (clothes_prompt, id, lora_id, clothes_prompt)
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO lora_outfit_preset (lora_id, clothes_prompt) 
+                VALUES(?, ?)
+                """, 
+                (lora_id, clothes_prompt))
+        
+        conn.commit()
+    finally:
+        conn.close()
+
 def update_title(lora_id: int, title: str):
     conn = get_db()
     try:
-        conn.execute("BEGIN")
-        conn.execute("UPDATE lora SET title=? WHERE id=?", (title, lora_id))
+        conn.execute("BEGIN")        
         
-        conn.execute("""
-            UPDATE lora_fts
-            SET title=?
-            WHERE rowid=?
-        """, (title, lora_id))
-        conn.commit()
+        if title is not None:
+            conn.execute("UPDATE lora SET title=? WHERE id=?", (title, lora_id))
+            conn.execute("""
+                UPDATE lora_fts
+                SET title=?
+                WHERE rowid=?
+            """, (title, lora_id))
+            conn.commit()
     except:
         conn.rollback()
         raise
