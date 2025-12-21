@@ -107,6 +107,36 @@ def fetch_kinds():
     finally:
         conn.close()
 
+def fetch_body(lora_id: int):
+    conn = get_db()
+    try:
+        rows = conn.execute("""
+            SELECT id, body_prompt
+            FROM lora_body_preset
+            WHERE lora_id = ?
+            ORDER BY id DESC
+        """,
+        (lora_id,)).fetchall()
+        
+        return [r for r in rows]
+    finally:
+        conn.close()
+
+def fetch_clothes(lora_id: int):
+    conn = get_db()
+    try:
+        rows = conn.execute("""
+            SELECT id, clothes_prompt
+            FROM lora_outfit_preset
+            WHERE lora_id = ?
+            ORDER BY id DESC
+        """,
+        (lora_id,)).fetchall()
+        
+        return [r for r in rows]
+    finally:
+        conn.close()
+
 def lora_tag(name: str, w: float):
     # A1111の <lora:NAME:W>
     safe = name.replace(":", "_")
