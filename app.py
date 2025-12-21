@@ -393,20 +393,24 @@ with picked_area:
                 st.image(thumb, width="stretch")
                 
         st.session_state.w[_id] = st.slider(name, 0.1, 1.5, float(st.session_state.w.get(_id, 0.8)), 0.05)
+        
         new_title = st.text_input(f"Title: {display}", value=(title or name), key=f"title_{_id}")        
         new_body_prompt = st.text_input(f"body", value=body_prompt, key=f"body_{_id}")
         new_clothes_prompt = st.text_input(f"clothes", value=clothes_prompt, key=f"clothes_{_id}")
         
-        new_title = st.text_input(f"Title: {display}", value=(title or name), key=f"title_{_id}")
-        if st.button("Save Title", key=f"save_title_{_id}"):
+        if st.button("Save Data", key=f"save_data_{_id}"):
             update_title(_id, new_title)
+            
+            body_to_save = None if new_body_prompt == body_prompt else new_body_prompt
+            update_body_prompt(body_id, _id, body_to_save)
+            
+            clothes_to_save = None if new_clothes_prompt == clothes_prompt else new_clothes_prompt
+            update_clothes_prompt(clothes_id, _id, clothes_to_save)
             
             row = list(row)
             row[6] = new_title
+            
             st.session_state.picked[_id] = tuple(row)
-            # キャッシュ対策。必要な時に有効化。古いデータが画面上に表示されるときとか
-#            st.cache_data.clear()
-        
             st.session_state.flash_success = "saved"
             st.rerun()
     
