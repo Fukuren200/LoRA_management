@@ -386,6 +386,12 @@ with picked_area:
 #            st.cache_data.clear()
         
         st.session_state.w[_id] = st.slider(name, 0.1, 1.5, float(st.session_state.w.get(_id, 0.8)), 0.05)
+            st.session_state.flash_success = "saved"
+            st.rerun()
+    
+    msg = st.session_state.pop("flash_success", None)
+    if msg:
+        st.success(msg)
 
     if st.session_state.picked:
         st.divider()
