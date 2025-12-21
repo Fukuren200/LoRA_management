@@ -341,7 +341,7 @@ with colA:
                     st.session_state.w.setdefault(_id, 0.8)
                 st.rerun()
                 
-            st.text_input("trigger", value=(trigger or ""), key=f"tr_{_id}", disabled=True)
+#            st.text_input("trigger", value=(trigger or ""), key=f"tr_{_id}", disabled=True)
 
 with picked_area:    
     if st.button("Pickedをクリア"):
