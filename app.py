@@ -369,10 +369,32 @@ with picked_area:
         name = row[1]
         thumb = row[3]
         title = row[6]
+        
+        body_list = fetch_body(_id)
+        clothes_list = fetch_clothes(_id)
+        
+        if body_list is not None and len(body_list) > 0:
+            body_id = body_list[0][0]
+            body_prompt = body_list[0][1]
+        else:
+            body_id = None
+            body_prompt = None
+        
+        if clothes_list is not None and len(clothes_list) > 0:
+            clothes_id = clothes_list[0][0]
+            clothes_prompt = clothes_list[0][1]
+        else:
+            clothes_id = None
+            clothes_prompt = None
+            
         display = title or name
         
         if thumb and Path(thumb).exists():
                 st.image(thumb, width="stretch")
+                
+        new_title = st.text_input(f"Title: {display}", value=(title or name), key=f"title_{_id}")        
+        new_body_prompt = st.text_input(f"body", value=body_prompt, key=f"body_{_id}")
+        new_clothes_prompt = st.text_input(f"clothes", value=clothes_prompt, key=f"clothes_{_id}")
         
         new_title = st.text_input(f"Title: {display}", value=(title or name), key=f"title_{_id}")
         if st.button("Save Title", key=f"save_title_{_id}"):
