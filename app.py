@@ -142,19 +142,31 @@ def lora_tag(name: str, w: float):
     safe = name.replace(":", "_")
     return f"<lora:{safe}:{w:.2f}>"
 
-def recipe_generate(selected, weights):
+def recipe_generate(name, weights, body_prompt: str | None, clothes_prompt: str | None):
     # selected: rows of (id,name,trigger,thumb,path,kind)
-    tags = []
-    triggers = []
-    for r in selected:
-        _id, name, trigger, *_ = r
-        tags.append(lora_tag(name, weights.get(_id, 0.8)))
-        if trigger:
-            triggers.append(trigger)
-    prompt = " ".join(tags)
-    if triggers:
-        prompt += "\n" + ", ".join([t for t in triggers if t.strip()])
-    return prompt.strip()
+#    tags = []
+#    triggers = []
+#    for r in selected:
+#        _id, name, trigger, *_ = r
+#        tags.append(lora_tag(name, weights.get(_id, 0.8)))
+#        if trigger:
+#            triggers.append(trigger)
+#    prompt = " ".join(tags)
+#    if triggers:
+#        prompt += "\n" + ", ".join([t for t in triggers if t.strip()])
+#    return prompt.strip()
+
+    parts = []
+    parts.append(lora_tag(name, weights.get(_id, 0.8)))
+    
+    if body_prompt:
+        parts.append("\n" + body_prompt)
+    if clothes_prompt:
+        parts.append("\n" + clothes_prompt)
+        
+    final_prompt = ", ".join(parts)
+    return final_prompt
+    
 
 def update_body_prompt(id: int | None, lora_id: int, body_prompt: str | None):
 
@@ -421,5 +433,6 @@ with picked_area:
     if st.session_state.picked:
         st.divider()
         st.subheader("Prompt")
-        out = recipe_generate(list(st.session_state.picked.values()), st.session_state.w)
+#        out = recipe_generate(list(st.session_state.picked.values()),  st.session_state.w, body, clothes)
+        out = recipe_generate(name, st.session_state.w, body_prompt, clothes_prompt)
         st.code(out, language="text")
