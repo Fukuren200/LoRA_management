@@ -381,7 +381,6 @@ with picked_area:
             row = list(row)
             row[6] = new_title
             st.session_state.picked[_id] = tuple(row)
-            st.success("saved")
             # キャッシュ対策。必要な時に有効化。古いデータが画面上に表示されるときとか
 #            st.cache_data.clear()
         
